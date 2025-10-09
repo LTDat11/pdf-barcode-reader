@@ -16,10 +16,7 @@ REQUEST_TIMEOUT = 30
 
 # ---------- Helpers ----------
 def get_poppler_path() -> str | None:
-    """
-    Trả về None khi chạy trên Streamlit Cloud (đã cài poppler system-wide).
-    Trả về đường dẫn cục bộ khi chạy trên máy dev (nếu có poppler_bin).
-    """
+    """Trả về None khi chạy trên Streamlit Cloud (đã cài poppler system-wide)."""
     base = os.path.abspath(os.path.dirname(__file__))
     poppler_dir = os.path.join(base, "poppler_bin")
     if os.path.exists(poppler_dir):
@@ -70,9 +67,10 @@ def process_single(idx: int, url: str, poppler_path: str | None) -> Dict:
 
 # ---------- Streamlit UI ----------
 st.set_page_config(page_title="PDF Barcode Batch Reader", layout="wide")
-st.title("PDF Barcode Batch Reader — Extract & Trim")
-st.markdown("Dán danh sách URL PDF (mỗi link 1 dòng). App chạy song song và giữ session riêng cho từng user.")
+st.title("📦 PDF Barcode Batch Reader — Extract & Trim")
+st.markdown("Dán danh sách URL PDF (mỗi link 1 dòng) rồi bấm **Start processing**")
 
+# Session state init
 if "results" not in st.session_state:
     st.session_state["results"] = []
     st.session_state["total"] = 0
@@ -80,24 +78,32 @@ if "results" not in st.session_state:
     st.session_state["urls"] = []
     st.session_state["running"] = False
 
-col1, col2 = st.columns([2, 1])
-with col1:
-    urls_text = st.text_area("URLs (mỗi link 1 dòng)", height=220, value="\n".join(st.session_state.get("urls", [])))
-    max_workers = st.number_input("Max workers (threads)", min_value=1, max_value=32, value=DEFAULT_MAX_WORKERS, step=1)
-    start_btn = st.button("Start processing", disabled=st.session_state["running"])
-    refresh_btn = st.button("Refresh / Reset session")
-    st.write("Nếu deploy trên Streamlit Cloud, Poppler đã được cài sẵn qua packages.txt.")
+# --- Giao diện chính (chỉ 1 cột) ---
+urls_text = st.text_area(
+    "URLs (mỗi link 1 dòng)",
+    height=220,
+    value="\n".join(st.session_state.get("urls", []))
+)
 
-with col2:
-    st.subheader("Actions")
-    st.download_button("Tải file ví dụ (template .txt)", data="https://example.com", file_name="template.txt")
-    st.write("Kết quả:")
+max_workers = st.number_input(
+    "Max workers (threads)",
+    min_value=1,
+    max_value=32,
+    value=DEFAULT_MAX_WORKERS,
+    step=1
+)
+
+col_btn1, col_btn2 = st.columns([1, 1])
+with col_btn1:
+    start_btn = st.button("🚀 Start processing", disabled=st.session_state["running"])
+with col_btn2:
+    refresh_btn = st.button("🔄 Refresh / Reset session")
 
 progress_bar = st.progress(0)
 status_text = st.empty()
 table_area = st.empty()
 
-# Reset session
+# --- Reset session ---
 if refresh_btn:
     st.session_state["results"] = []
     st.session_state["total"] = 0
@@ -108,13 +114,13 @@ if refresh_btn:
     status_text.text("Idle")
     st.experimental_rerun()
 
-# Start processing
+# --- Start processing ---
 if start_btn:
     lines = [line.strip() for line in urls_text.splitlines() if line.strip()]
     st.session_state["urls"] = lines
     total = len(lines)
     if total == 0:
-        status_text.text("Please paste URLs first")
+        status_text.text("⚠️ Vui lòng nhập URL trước")
     else:
         st.session_state["total"] = total
         st.session_state["processed"] = 0
@@ -122,7 +128,7 @@ if start_btn:
         st.session_state["running"] = True
 
         poppler_path = get_poppler_path()
-        status_text.text(f"Started processing {total} URLs...")
+        status_text.text(f"Đang xử lý {total} file PDF...")
 
         futures = {}
         max_workers_to_use = min(max_workers, DEFAULT_MAX_WORKERS, total) if total > 0 else 1
@@ -141,33 +147,39 @@ if start_btn:
                 progress_val = int((st.session_state["processed"] / st.session_state["total"]) * 100)
                 progress_bar.progress(min(progress_val, 100))
                 status_text.text(f"Processing {st.session_state['processed']}/{st.session_state['total']}")
-                display_rows = [r if r else {"index": "", "url": "", "raw": "", "trimmed": "", "error": ""} for r in st.session_state["results"]]
+                display_rows = [
+                    r if r else {"index": "", "url": "", "raw": "", "trimmed": "", "error": ""}
+                    for r in st.session_state["results"]
+                ]
                 table_area.table(display_rows)
 
         st.session_state["running"] = False
-        status_text.text("Completed")
+        status_text.text("✅ Completed")
 
-# Display results
+# --- Hiển thị kết quả ---
 if st.session_state.get("results"):
-    st.markdown("### Results")
-    display_rows = [r if r else {"index": idx, "url": "", "raw": "", "trimmed": "N/A", "error": "Pending"} for idx, r in enumerate(st.session_state["results"])]
+    st.markdown("### 📋 Results")
+    display_rows = [
+        r if r else {"index": idx, "url": "", "raw": "", "trimmed": "N/A", "error": "Pending"}
+        for idx, r in enumerate(st.session_state["results"])
+    ]
     table_area.table(display_rows)
 
     trimmed_list = [r.get("trimmed", "N/A") if r else "N/A" for r in st.session_state["results"]]
     trimmed_text = "\n".join(trimmed_list)
 
-    csv_data = "\n".join([",".join(["index", "url", "raw", "trimmed", "error"])] + [
-        ",".join([
-            str(r.get("index", "")),
-            '"' + (r.get("url", "").replace('"', '""')) + '"',
-            '"' + (r.get("raw", "").replace('"', '""')) + '"',
-            '"' + (r.get("trimmed", "").replace('"', '""')) + '"',
-            '"' + (r.get("error", "").replace('"', '""')) + '"'
-        ]) for r in st.session_state["results"]
-    ])
+    csv_data = "\n".join(
+        [",".join(["index", "url", "raw", "trimmed", "error"])] +
+        [
+            ",".join([
+                str(r.get("index", "")),
+                '"' + (r.get("url", "").replace('"', '""')) + '"',
+                '"' + (r.get("raw", "").replace('"', '""')) + '"',
+                '"' + (r.get("trimmed", "").replace('"', '""')) + '"',
+                '"' + (r.get("error", "").replace('"', '""')) + '"'
+            ]) for r in st.session_state["results"]
+        ]
+    )
 
-    st.download_button("Tải CSV kết quả", data=csv_data, file_name="results.csv", mime="text/csv")
+    st.download_button("💾 Tải CSV kết quả", data=csv_data, file_name="results.csv", mime="text/csv")
     st.text_area("Trimmed list (mỗi dòng tương ứng 1 URL)", value=trimmed_text, height=200)
-
-st.markdown("---")
-st.caption("Mỗi session Streamlit được tách biệt — không dùng file cục bộ chung hoặc biến global.")
