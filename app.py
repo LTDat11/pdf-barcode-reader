@@ -112,7 +112,7 @@ if refresh_btn:
     st.session_state["running"] = False
     progress_bar.progress(0)
     status_text.text("Idle")
-    st.experimental_rerun()
+    st.rerun()
 
 # --- Start processing ---
 if start_btn:
