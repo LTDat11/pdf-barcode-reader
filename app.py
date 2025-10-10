@@ -27,20 +27,31 @@ def get_poppler_path() -> str | None:
 
 
 def normalize_drive_url(url: str) -> str:
-    """Chuyển link Google Drive sang dạng tải trực tiếp (nếu cần)."""
-    # Dạng: https://drive.google.com/file/d/<id>/view
-    match = re.search(r"drive\.google\.com/file/d/([^/]+)/", url)
+    """Chuẩn hóa link Google Drive sang link tải trực tiếp (direct download)."""
+    # Loại bỏ các đoạn query hoặc tham số thừa
+    url = url.strip()
+
+    # --- Dạng: https://drive.google.com/file/d/<id>/view hoặc /edit hoặc không có gì sau id
+    match = re.search(r"drive\.google\.com/file/d/([^/?]+)", url)
     if match:
         file_id = match.group(1)
         return f"https://drive.google.com/uc?export=download&id={file_id}"
 
-    # Dạng: https://drive.google.com/open?id=<id>
+    # --- Dạng: https://drive.google.com/open?id=<id>
     match = re.search(r"drive\.google\.com/open\?id=([^&]+)", url)
     if match:
         file_id = match.group(1)
         return f"https://drive.google.com/uc?export=download&id={file_id}"
 
+    # --- Dạng: https://drive.google.com/uc?id=<id>
+    match = re.search(r"drive\.google\.com/uc\?id=([^&]+)", url)
+    if match:
+        file_id = match.group(1)
+        return f"https://drive.google.com/uc?export=download&id={file_id}"
+
+    # Không phải link Drive -> giữ nguyên
     return url
+
 
 
 def extract_tracking_from_pdf_bytes(pdf_bytes: bytes, poppler_path: str | None) -> List[str]:
@@ -198,6 +209,3 @@ if st.session_state.get("results"):
 
     st.download_button("💾 Tải CSV kết quả", data=csv_data, file_name="results.csv", mime="text/csv")
     st.text_area("Trimmed list (mỗi dòng tương ứng 1 URL)", value=trimmed_text, height=200)
-
-st.markdown("---")
-st.caption("Mỗi session Streamlit được tách biệt — không dùng file cục bộ chung hoặc biến global.")
