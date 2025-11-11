@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import requests
+import base64
 from io import BytesIO
 from pdf2image import convert_from_bytes
 from pyzbar.pyzbar import decode
@@ -86,46 +87,46 @@ def process_single(idx: int, url: str, poppler_path: str | None) -> Dict:
 # ---------- Streamlit UI ----------
 st.set_page_config(page_title="PDF Barcode Batch Reader", layout="wide", initial_sidebar_state="expanded")
 
-# Thêm hiệu ứng tuyết rơi liên tục bằng CSS tùy chỉnh
-st.markdown("""
-    <style>
-    .snowflake {
-        color: white;
-        font-size: 1em;
-        position: fixed;
-        top: -1em;
-        z-index: 9999;
-        animation: fall linear infinite;
-    }
+# Thêm hiệu ứng tuyết rơi cho mùa Noel
+st.snow()
 
-    @keyframes fall {
-        to {
-            transform: translateY(100vh);
-        }
-    }
-    </style>
-""", unsafe_allow_html=True)
+# Thêm nhạc nền từ mã nhúng iframe (ẩn đi để làm nhạc nền)
+MUSIC_REL_PATH = os.path.join("music", "noel-music.mp3")
 
-# JavaScript để tạo tuyết rơi liên tục (chạy sau khi trang load)
-st.markdown("""
-    <script>
-    function createSnowflake() {
-        const snowflake = document.createElement('div');
-        snowflake.classList.add('snowflake');
-        snowflake.textContent = '❄️';
-        snowflake.style.left = Math.random() * 100 + 'vw';
-        snowflake.style.animationDuration = Math.random() * 3 + 2 + 's'; // Tốc độ ngẫu nhiên
-        snowflake.style.opacity = Math.random();
-        snowflake.style.fontSize = Math.random() * 1 + 0.5 + 'em';
-        document.body.appendChild(snowflake);
-        setTimeout(() => {
-            snowflake.remove();
-        }, 5000); // Xóa sau 5 giây để tránh tích tụ
-    }
+def _get_audio_html_from_file(path: str, volume: float = 0.2) -> str:
+    """Return an HTML snippet that embeds the audio file as a base64 data URL.
 
-    setInterval(createSnowflake, 100); // Tạo tuyết mới mỗi 100ms
-    </script>
-""", unsafe_allow_html=True)
+    Using a data URL allows autoplay/loop attempts in the browser via a plain <audio> tag.
+    Note: Some browsers block autoplay with sound; the JS will try to play and will fail silently
+    if autoplay is blocked. The user can toggle playback using the small button.
+    """
+    if not os.path.exists(path):
+        return ""
+    try:
+        with open(path, "rb") as f:
+            data = base64.b64encode(f.read()).decode("ascii")
+    except Exception:
+        return ""
+
+    # Build the HTML with simple concatenation to avoid f-string brace escaping issues
+    html_parts = []
+    html_parts.append("<div style='display:flex;align-items:center;gap:10px;'>")
+    # Start muted to increase chance autoplay won't be blocked; user click will unmute
+    html_parts.append("<audio id='bgmusic' autoplay loop muted>")
+    html_parts.append("<source src='data:audio/mpeg;base64,")
+    html_parts.append(data)
+    html_parts.append("' type='audio/mpeg'>")
+    html_parts.append("Your browser does not support the audio element.")
+    html_parts.append("</audio>")
+    # Initial button shows Play to encourage user interaction which allows browsers to start audio
+    html_parts.append("<button id='musicToggle' onclick=\"(function(){var a=document.getElementById('bgmusic'); if(a.paused){a.muted=false; a.play(); this.innerText='Pause music';} else {a.pause(); this.innerText='Play music';}}).call(this)\">Play music</button>")
+    html_parts.append("<small style='opacity:0.8'>Background music</small>")
+    html_parts.append("</div>")
+    html_parts.append("<script>")
+    html_parts.append("try { var audio = document.getElementById('bgmusic'); audio.volume = " + str(volume) + "; audio.play().catch(function(e){console.log('autoplay attempt failed:', e)}); } catch(e){console.log('audio embed error', e)}")
+    html_parts.append("</script>")
+
+    return "\n".join(html_parts)
 
 # Thêm CSS tùy chỉnh cho giao diện Noel: background, màu sắc, v.v.
 st.markdown("""
@@ -137,36 +138,36 @@ st.markdown("""
         background-position: center;
         background-repeat: no-repeat;
     }
-   
+    
     /* Màu sắc Noel cho tiêu đề và nút */
     h1 {
-        color: #d00000; /* Đỏ Noel */
+        color: #d00000;  /* Đỏ Noel */
         text-shadow: 2px 2px 4px #ffffff;
     }
-   
+    
     h3 {
-        color: #006400; /* Xanh cây thông */
+        color: #006400;  /* Xanh cây thông */
     }
-   
+    
     .stButton > button {
-        background-color: #228B22; /* Xanh lá */
+        background-color: #228B22;  /* Xanh lá */
         color: white;
         border: 2px solid #d00000;
     }
-   
+    
     .stButton > button:hover {
         background-color: #d00000;
         color: white;
     }
-   
+    
     /* Thêm border Noel cho các phần */
     .stExpander, .stTextArea, .stNumberInput {
         border: 2px dashed #ffffff;
         border-radius: 10px;
         padding: 10px;
-        background-color: rgba(255, 255, 255, 0.8); /* Nền trắng mờ để dễ đọc */
+        background-color: rgba(255, 255, 255, 0.8);  /* Nền trắng mờ để dễ đọc */
     }
-   
+    
     /* Hiệu ứng lấp lánh cho tiêu đề (optional, nếu browser hỗ trợ) */
     @keyframes sparkle {
         0% { text-shadow: 0 0 5px #fff; }
@@ -182,9 +183,26 @@ st.markdown("""
 # Hiển thị ảnh bìa trên đầu tiêu đề nếu file tồn tại
 cover_path = "qrcode/cover-photo.jpg"
 if os.path.exists(cover_path):
-    st.image(cover_path, use_container_width=True)
+    st.image(cover_path, use_column_width=True)
 else:
     st.warning(f"Không tìm thấy ảnh bìa tại '{cover_path}'. Vui lòng kiểm tra đường dẫn và đặt file đúng vị trí.")
+
+# Hiển thị nhạc nền nếu được bật (sử dụng embed base64 để cố gắng autoplay + loop)
+try:
+    if globals().get("music_enabled"):
+        music_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), MUSIC_REL_PATH)
+        audio_html = _get_audio_html_from_file(music_path, volume=globals().get("music_volume", 0.2))
+        if audio_html:
+            st.markdown(audio_html, unsafe_allow_html=True)
+        else:
+            # Fallback to st.audio to at least show a player if direct embed failed
+            if os.path.exists(music_path):
+                with open(music_path, "rb") as _mf:
+                    st.audio(_mf.read(), format="audio/mp3")
+            else:
+                st.warning(f"Không tìm thấy file nhạc tại '{MUSIC_REL_PATH}'.")
+except Exception:
+    pass
 
 st.title("🎄📦 PDF Barcode Batch Reader — Extract & Trim ❄️")
 st.markdown("### 🎅 Hướng dẫn sử dụng (Phiên bản Noel) 🎁")
@@ -216,6 +234,9 @@ with st.sidebar:
         step=1,
         help="Số lượng luồng song song để xử lý nhanh hơn (tùy thuộc vào tài nguyên máy). ❄️"
     )
+    # Music controls for background audio
+    music_enabled = st.checkbox("Phát nhạc nền (noel-music) 🎵", value=True, help="Bật/tắt nhạc nền")
+    music_volume = st.slider("Âm lượng nhạc", min_value=0.0, max_value=1.0, value=0.2, step=0.05, help="Điều chỉnh âm lượng nhạc nền")
     st.markdown("---")
     st.header("ℹ️ Thông tin 🎅")
     st.markdown("Công cụ này hỗ trợ trích xuất mã vạch từ PDF vận đơn (ví dụ: mã tracking). 🌟")
