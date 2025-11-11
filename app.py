@@ -187,7 +187,7 @@ st.markdown("""
 # Hiển thị ảnh bìa trên đầu tiêu đề nếu file tồn tại
 cover_path = "qrcode/cover-photo.jpg"
 if os.path.exists(cover_path):
-    st.image(cover_path, use_column_width=True)
+    st.image(cover_path, use_container_width=True)
 else:
     st.warning(f"Không tìm thấy ảnh bìa tại '{cover_path}'. Vui lòng kiểm tra đường dẫn và đặt file đúng vị trí.")
 
