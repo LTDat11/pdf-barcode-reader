@@ -197,7 +197,7 @@ if st.session_state.get("show_qr", False):
     with st.container():
         st.markdown("### 🍩 Ủng hộ tôi - Donut Time!")
         st.write("Nếu công cụ này giúp ích cho bạn My và Hân, có thể ủng hộ tôi một chiếc donut ☕🍩")
-        st.image("qrcode\\qrcode.jpg", caption="Scan để ủng hộ 💗", width=220)
+        st.image("qrcode/qrcode.jpg", caption="Scan để ủng hộ 💗", width=220)
         st.write("Cảm ơn bạn rất nhiều ❤️")
         if st.button("Đóng popup"):
             st.session_state["show_qr"] = False
