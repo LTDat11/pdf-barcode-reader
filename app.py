@@ -15,7 +15,6 @@ TRIM_FROM = 8
 DEFAULT_MAX_WORKERS = 6
 REQUEST_TIMEOUT = 30
 
-
 # ---------- Helpers ----------
 def get_poppler_path() -> str | None:
     """Trả về None khi chạy trên Streamlit Cloud (đã cài poppler system-wide)."""
@@ -25,34 +24,22 @@ def get_poppler_path() -> str | None:
         return poppler_dir
     return None
 
-
 def normalize_drive_url(url: str) -> str:
     """Chuẩn hóa link Google Drive sang link tải trực tiếp (direct download)."""
-    # Loại bỏ các đoạn query hoặc tham số thừa
     url = url.strip()
-
-    # --- Dạng: https://drive.google.com/file/d/<id>/view hoặc /edit hoặc không có gì sau id
     match = re.search(r"drive\.google\.com/file/d/([^/?]+)", url)
     if match:
         file_id = match.group(1)
         return f"https://drive.google.com/uc?export=download&id={file_id}"
-
-    # --- Dạng: https://drive.google.com/open?id=<id>
     match = re.search(r"drive\.google\.com/open\?id=([^&]+)", url)
     if match:
         file_id = match.group(1)
         return f"https://drive.google.com/uc?export=download&id={file_id}"
-
-    # --- Dạng: https://drive.google.com/uc?id=<id>
     match = re.search(r"drive\.google\.com/uc\?id=([^&]+)", url)
     if match:
         file_id = match.group(1)
         return f"https://drive.google.com/uc?export=download&id={file_id}"
-
-    # Không phải link Drive -> giữ nguyên
     return url
-
-
 
 def extract_tracking_from_pdf_bytes(pdf_bytes: bytes, poppler_path: str | None) -> List[str]:
     """Chuyển PDF -> ảnh -> decode barcode trên mỗi trang."""
@@ -60,7 +47,6 @@ def extract_tracking_from_pdf_bytes(pdf_bytes: bytes, poppler_path: str | None) 
         images = convert_from_bytes(pdf_bytes, dpi=300, poppler_path=poppler_path)
     except Exception as e:
         raise RuntimeError(f"convert_from_bytes error: {e}")
-
     found = []
     for img in images:
         try:
@@ -75,7 +61,6 @@ def extract_tracking_from_pdf_bytes(pdf_bytes: bytes, poppler_path: str | None) 
         except Exception:
             continue
     return found
-
 
 def process_single(idx: int, url: str, poppler_path: str | None) -> Dict:
     """Tải PDF từ URL (hỗ trợ link Drive) và đọc barcode."""
@@ -98,11 +83,16 @@ def process_single(idx: int, url: str, poppler_path: str | None) -> Dict:
         result = {"index": idx, "url": url, "raw": "", "trimmed": "N/A", "error": str(e)}
     return result
 
-
 # ---------- Streamlit UI ----------
-st.set_page_config(page_title="PDF Barcode Batch Reader", layout="wide")
+st.set_page_config(page_title="PDF Barcode Batch Reader", layout="wide", initial_sidebar_state="expanded")
 st.title("📦 PDF Barcode Batch Reader — Extract & Trim")
-st.markdown("Dán danh sách **URL PDF hoặc link Google Drive** (mỗi link 1 dòng) để trích xuất mã vạch.")
+st.markdown("### Hướng dẫn sử dụng")
+st.markdown("""
+- Dán danh sách **URL PDF hoặc link Google Drive** (mỗi link 1 dòng) vào ô bên dưới.
+- Chọn số lượng worker (threads) để xử lý song song (mặc định: 6).
+- Nhấn **🚀 Start processing** để bắt đầu.
+- Kết quả sẽ hiển thị dưới dạng bảng, và bạn có thể tải về CSV hoặc copy danh sách trimmed.
+""")
 
 # Khởi tạo session state
 if "results" not in st.session_state:
@@ -111,31 +101,40 @@ if "results" not in st.session_state:
     st.session_state["processed"] = 0
     st.session_state["urls"] = []
     st.session_state["running"] = False
+    st.session_state["show_donut"] = False
+
+# --- Sidebar cho cấu hình ---
+with st.sidebar:
+    st.header("⚙️ Cấu hình")
+    max_workers = st.number_input(
+        "Max workers (threads)",
+        min_value=1,
+        max_value=32,
+        value=DEFAULT_MAX_WORKERS,
+        step=1,
+        help="Số lượng luồng song song để xử lý nhanh hơn (tùy thuộc vào tài nguyên máy)."
+    )
+    st.markdown("---")
+    st.header("ℹ️ Thông tin")
+    st.markdown("Công cụ này hỗ trợ trích xuất mã vạch từ PDF vận đơn (ví dụ: mã tracking).")
+    st.markdown("Nếu hữu ích, hãy ủng hộ developer một chiếc donut! 🍩")
 
 # --- Giao diện chính ---
 urls_text = st.text_area(
-    "URLs (mỗi link 1 dòng)",
+    "Dán URLs PDF hoặc Google Drive (mỗi link 1 dòng)",
     height=220,
-    value="\n".join(st.session_state.get("urls", []))
-)
-
-max_workers = st.number_input(
-    "Max workers (threads)",
-    min_value=1,
-    max_value=32,
-    value=DEFAULT_MAX_WORKERS,
-    step=1
+    value="\n".join(st.session_state.get("urls", [])),
+    help="Ví dụ: https://drive.google.com/file/d/ABC123/view"
 )
 
 col_btn1, col_btn2 = st.columns([1, 1])
 with col_btn1:
-    start_btn = st.button("🚀 Start processing", disabled=st.session_state["running"])
+    start_btn = st.button("🚀 Start processing", disabled=st.session_state["running"], type="primary")
 with col_btn2:
-    refresh_btn = st.button("🔄 Refresh / Reset session")
+    refresh_btn = st.button("🔄 Reset session")
 
 progress_bar = st.progress(0)
 status_text = st.empty()
-table_area = st.empty()
 
 # --- Reset session ---
 if refresh_btn:
@@ -144,21 +143,35 @@ if refresh_btn:
     st.session_state["processed"] = 0
     st.session_state["urls"] = []
     st.session_state["running"] = False
+    st.session_state["show_donut"] = False
     progress_bar.progress(0)
-    status_text.text("Idle")
+    status_text.text("Đã reset. Sẵn sàng sử dụng lại.")
     st.rerun()
 
 # --- Start processing ---
 if start_btn:
+    st.session_state["show_donut"] = True  # Hiển thị thông báo donut mỗi khi bắt đầu sử dụng
+    st.rerun()  # Rerun để hiển thị popup ngay lập tức
 
-    # --- Hiển thị popup QR giả lập ---
-    st.session_state["show_qr"] = True
+# --- Hiển thị popup donut (sử dụng expander để giả lập modal) ---
+if st.session_state.get("show_donut", False):
+    with st.expander("🍩 Ủng hộ tôi - Donut Time! (Mỗi lần sử dụng, hãy cân nhắc ủng hộ 💗)", expanded=True):
+        st.markdown("""
+        Nếu công cụ này giúp ích cho bạn, hãy ủng hộ tôi một chiếc donut ☕🍩 để duy trì và phát triển!
+        """)
+        # Giả sử QR code được lưu tại 'qrcode/qrcode.jpg' - bạn có thể thay bằng URL hoặc upload
+        st.image("qrcode/qrcode.jpg", caption="Scan QR để ủng hộ", width=250)
+        if st.button("Đóng và tiếp tục xử lý"):
+            st.session_state["show_donut"] = False
+            st.rerun()
 
+# Chỉ xử lý nếu popup đã đóng (không show_donut nữa) và start_btn đã được nhấn trước đó
+if start_btn and not st.session_state["show_donut"]:
     lines = [line.strip() for line in urls_text.splitlines() if line.strip()]
     st.session_state["urls"] = lines
     total = len(lines)
     if total == 0:
-        status_text.text("Please paste URLs first")
+        status_text.text("Vui lòng dán URLs trước khi bắt đầu.")
     else:
         st.session_state["total"] = total
         st.session_state["processed"] = 0
@@ -166,7 +179,7 @@ if start_btn:
         st.session_state["running"] = True
 
         poppler_path = get_poppler_path()
-        status_text.text(f"Started processing {total} URLs...")
+        status_text.text(f"Đang xử lý {total} URLs...")
 
         futures = {}
         max_workers_to_use = min(max_workers, DEFAULT_MAX_WORKERS, total) if total > 0 else 1
@@ -182,79 +195,18 @@ if start_btn:
                     result = {"index": idx_of, "url": lines[idx_of], "raw": "", "trimmed": "N/A", "error": str(e)}
                 st.session_state["results"][idx_of] = result
                 st.session_state["processed"] += 1
-                progress_val = int((st.session_state["processed"] / st.session_state["total"]) * 100)
-                progress_bar.progress(min(progress_val, 100))
-                status_text.text(f"Processing {st.session_state['processed']}/{st.session_state['total']}")
-                display_rows = [r if r else {"index": "", "url": "", "raw": "", "trimmed": "", "error": ""} for r in st.session_state["results"]]
-                table_area.table(display_rows)
+                progress_val = st.session_state["processed"] / st.session_state["total"]
+                progress_bar.progress(progress_val)
+                status_text.text(f"Đang xử lý {st.session_state['processed']}/{st.session_state['total']}")
 
         st.session_state["running"] = False
-        status_text.text("✅ Completed")
-
-
-# --- Hiển thị popup QR giả lập ---
-if st.session_state.get("show_qr", False):
-    popup_html = """
-    <style>
-        .popup-overlay {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-        .popup-box {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            text-align: center;
-            max-width: 350px;
-            width: 90%;
-            position: relative;
-        }
-        .popup-box img {
-            max-width: 220px;
-            border-radius: 8px;
-        }
-        .popup-close {
-            background-color: #ff4b4b;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-        .popup-close:hover {
-            background-color: #e63b3b;
-        }
-    </style>
-
-    <div class="popup-overlay">
-        <div class="popup-box">
-            <h3>🍩 Ủng hộ tôi - Donut Time!</h3>
-            <p>Nếu công cụ này giúp ích cho bạn,<br>hãy ủng hộ tôi một chiếc donut ☕🍩</p>
-            <img src="qrcode/qrcode.jpg" alt="QR Donate">
-            <p>Scan để ủng hộ 💗</p>
-            <form action="" method="get">
-                <button class="popup-close" type="submit">Đóng</button>
-            </form>
-        </div>
-    </div>
-    """
-    st.markdown(popup_html, unsafe_allow_html=True)
-    st.session_state["show_qr"] = False
+        status_text.text("✅ Hoàn thành xử lý!")
 
 # --- Hiển thị kết quả ---
 if st.session_state.get("results"):
-    st.markdown("### 📋 Results")
-    display_rows = [r if r else {"index": idx, "url": "", "raw": "", "trimmed": "N/A", "error": "Pending"} for idx, r in enumerate(st.session_state["results"])]
-    table_area.table(display_rows)
+    st.markdown("### 📋 Kết quả xử lý")
+    display_rows = [r if r else {"index": idx, "url": "", "raw": "", "trimmed": "N/A", "error": "Đang chờ"} for idx, r in enumerate(st.session_state["results"])]
+    st.dataframe(display_rows, use_container_width=True)
 
     trimmed_list = [r.get("trimmed", "N/A") if r else "N/A" for r in st.session_state["results"]]
     trimmed_text = "\n".join(trimmed_list)
@@ -266,8 +218,11 @@ if st.session_state.get("results"):
             '"' + (r.get("raw", "").replace('"', '""')) + '"',
             '"' + (r.get("trimmed", "").replace('"', '""')) + '"',
             '"' + (r.get("error", "").replace('"', '""')) + '"'
-        ]) for r in st.session_state["results"]
+        ]) for r in st.session_state["results"] if r
     ])
 
-    st.download_button("💾 Tải CSV kết quả", data=csv_data, file_name="results.csv", mime="text/csv")
-    st.text_area("Trimmed list (mỗi dòng tương ứng 1 URL)", value=trimmed_text, height=200)
+    col_dl1, col_dl2 = st.columns(2)
+    with col_dl1:
+        st.download_button("💾 Tải CSV kết quả", data=csv_data, file_name="results.csv", mime="text/csv")
+    with col_dl2:
+        st.text_area("Danh sách trimmed (copy-paste)", value=trimmed_text, height=200)
