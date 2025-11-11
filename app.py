@@ -84,8 +84,15 @@ def process_single(idx: int, url: str, poppler_path: str | None) -> Dict:
     return result
 
 # ---------- Streamlit UI ----------
-st.image("qrcode/cover-photo.jpg", use_column_width=True)
 st.set_page_config(page_title="PDF Barcode Batch Reader", layout="wide", initial_sidebar_state="expanded")
+
+# Hiển thị ảnh bìa trên đầu tiêu đề nếu file tồn tại
+cover_path = "qrcode/cover-photo.jpg"
+if os.path.exists(cover_path):
+    st.image(cover_path, use_column_width=True)
+else:
+    st.warning(f"Không tìm thấy ảnh bìa tại '{cover_path}'. Vui lòng kiểm tra đường dẫn và đặt file đúng vị trí.")
+
 st.title("📦 PDF Barcode Batch Reader — Extract & Trim")
 st.markdown("### Hướng dẫn sử dụng")
 st.markdown("""
@@ -164,7 +171,11 @@ if st.session_state.get("show_donut", False):
         Nếu công cụ này giúp ích cho bạn, hãy ủng hộ tôi một chiếc donut ☕🍩 để duy trì và phát triển!
         """)
         # Giả sử QR code được lưu tại 'qrcode/qrcode.jpg' - bạn có thể thay bằng URL hoặc upload
-        st.image("qrcode/qrcode.jpg", caption="Scan QR để ủng hộ", width=250)
+        qr_path = "qrcode/qrcode.jpg"
+        if os.path.exists(qr_path):
+            st.image(qr_path, caption="Scan QR để ủng hộ", width=250)
+        else:
+            st.warning(f"Không tìm thấy QR code tại '{qr_path}'. Vui lòng kiểm tra đường dẫn.")
         if st.button("Đóng và tiếp tục xử lý"):
             st.session_state["show_donut"] = False
             st.rerun()
