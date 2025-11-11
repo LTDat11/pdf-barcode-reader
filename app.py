@@ -127,9 +127,12 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# Thêm nhạc nền từ mã nhúng iframe với allow="autoplay"
+# Thêm nhạc nền với audio tag và autoplay loop
 st.markdown("""
-    <iframe scrolling="no" width="0" height="0" src="https://zingmp3.vn/embed/song/Z6Z00Z7U?start=true" frameborder="0" allowfullscreen="true" allow="autoplay"></iframe>
+    <audio autoplay loop>
+        <source src="https://incompetech.com/music/royalty-free/mp3-royaltyfree/Jingle%20Bells%203.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
 """, unsafe_allow_html=True)
 
 # Thêm CSS tùy chỉnh cho giao diện Noel: background, màu sắc, v.v.
