@@ -150,6 +150,18 @@ if refresh_btn:
 
 # --- Start processing ---
 if start_btn:
+
+     # --- Hiển thị popup QR ủng hộ ---
+    with st.modal("🍩 Ủng hộ tôi - Donut Time!"):
+        st.write("Nếu bạn Hân và My thấy công cụ này hữu ích, có thể ủng hộ tôi một chiếc donut ☕🍩")
+        st.write("**Quét mã QR bên dưới để gửi ủng hộ:**")
+
+        # 👇 Thay bằng đường dẫn ảnh QR thật của bạn (có thể là file cục bộ hoặc URL)
+        st.image("qrcode\\qrcode.jpg", caption="Scan để ủng hộ 💗", width=220)
+
+        st.write("Cảm ơn bạn rất nhiều ❤️")
+        st.button("Đóng")
+
     lines = [line.strip() for line in urls_text.splitlines() if line.strip()]
     st.session_state["urls"] = lines
     total = len(lines)
