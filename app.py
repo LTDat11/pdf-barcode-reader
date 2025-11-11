@@ -86,12 +86,50 @@ def process_single(idx: int, url: str, poppler_path: str | None) -> Dict:
 # ---------- Streamlit UI ----------
 st.set_page_config(page_title="PDF Barcode Batch Reader", layout="wide", initial_sidebar_state="expanded")
 
-# Thêm hiệu ứng tuyết rơi cho mùa Noel
-st.snow()
-
-# Thêm nhạc nền từ mã nhúng iframe (ẩn đi để làm nhạc nền)
+# Thêm hiệu ứng tuyết rơi liên tục bằng CSS tùy chỉnh
 st.markdown("""
-    <iframe scrolling="no" width="0" height="0" src="https://zingmp3.vn/embed/song/Z6Z00Z7U?start=true" frameborder="0" allowfullscreen="true"></iframe>
+    <style>
+    .snowflake {
+        color: white;
+        font-size: 1em;
+        position: fixed;
+        top: -1em;
+        z-index: 9999;
+        animation: fall linear infinite;
+    }
+
+    @keyframes fall {
+        to {
+            transform: translateY(100vh);
+        }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# JavaScript để tạo tuyết rơi liên tục (chạy sau khi trang load)
+st.markdown("""
+    <script>
+    function createSnowflake() {
+        const snowflake = document.createElement('div');
+        snowflake.classList.add('snowflake');
+        snowflake.textContent = '❄️';
+        snowflake.style.left = Math.random() * 100 + 'vw';
+        snowflake.style.animationDuration = Math.random() * 3 + 2 + 's'; // Tốc độ ngẫu nhiên
+        snowflake.style.opacity = Math.random();
+        snowflake.style.fontSize = Math.random() * 1 + 0.5 + 'em';
+        document.body.appendChild(snowflake);
+        setTimeout(() => {
+            snowflake.remove();
+        }, 5000); // Xóa sau 5 giây để tránh tích tụ
+    }
+
+    setInterval(createSnowflake, 100); // Tạo tuyết mới mỗi 100ms
+    </script>
+""", unsafe_allow_html=True)
+
+# Thêm nhạc nền từ mã nhúng iframe với allow="autoplay"
+st.markdown("""
+    <iframe scrolling="no" width="0" height="0" src="https://zingmp3.vn/embed/song/Z6Z00Z7U?start=true" frameborder="0" allowfullscreen="true" allow="autoplay"></iframe>
 """, unsafe_allow_html=True)
 
 # Thêm CSS tùy chỉnh cho giao diện Noel: background, màu sắc, v.v.
