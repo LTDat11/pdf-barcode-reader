@@ -102,6 +102,7 @@ if "results" not in st.session_state:
     st.session_state["urls"] = []
     st.session_state["running"] = False
     st.session_state["show_donut"] = False
+    st.session_state["process_triggered"] = False
 
 # --- Sidebar cho cấu hình ---
 with st.sidebar:
@@ -144,6 +145,7 @@ if refresh_btn:
     st.session_state["urls"] = []
     st.session_state["running"] = False
     st.session_state["show_donut"] = False
+    st.session_state["process_triggered"] = False
     progress_bar.progress(0)
     status_text.text("Đã reset. Sẵn sàng sử dụng lại.")
     st.rerun()
@@ -151,7 +153,8 @@ if refresh_btn:
 # --- Start processing ---
 if start_btn:
     st.session_state["show_donut"] = True  # Hiển thị thông báo donut mỗi khi bắt đầu sử dụng
-    st.rerun()  # Rerun để hiển thị popup ngay lập tức
+    st.session_state["process_triggered"] = True
+    st.rerun()
 
 # --- Hiển thị popup donut (sử dụng expander để giả lập modal) ---
 if st.session_state.get("show_donut", False):
@@ -165,13 +168,14 @@ if st.session_state.get("show_donut", False):
             st.session_state["show_donut"] = False
             st.rerun()
 
-# Chỉ xử lý nếu popup đã đóng (không show_donut nữa) và start_btn đã được nhấn trước đó
-if start_btn and not st.session_state["show_donut"]:
+# Chỉ xử lý nếu process_triggered và popup đã đóng
+if st.session_state.get("process_triggered", False) and not st.session_state["show_donut"]:
     lines = [line.strip() for line in urls_text.splitlines() if line.strip()]
     st.session_state["urls"] = lines
     total = len(lines)
     if total == 0:
         status_text.text("Vui lòng dán URLs trước khi bắt đầu.")
+        st.session_state["process_triggered"] = False  # Reset trigger
     else:
         st.session_state["total"] = total
         st.session_state["processed"] = 0
@@ -200,6 +204,7 @@ if start_btn and not st.session_state["show_donut"]:
                 status_text.text(f"Đang xử lý {st.session_state['processed']}/{st.session_state['total']}")
 
         st.session_state["running"] = False
+        st.session_state["process_triggered"] = False  # Reset trigger sau khi hoàn thành
         status_text.text("✅ Hoàn thành xử lý!")
 
 # --- Hiển thị kết quả ---
