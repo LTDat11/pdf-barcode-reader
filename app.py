@@ -86,6 +86,66 @@ def process_single(idx: int, url: str, poppler_path: str | None) -> Dict:
 # ---------- Streamlit UI ----------
 st.set_page_config(page_title="PDF Barcode Batch Reader", layout="wide", initial_sidebar_state="expanded")
 
+# Thêm hiệu ứng tuyết rơi cho mùa Noel
+st.snow()
+
+# Thêm nhạc nền từ mã nhúng iframe (ẩn đi để làm nhạc nền)
+st.markdown("""
+    <iframe scrolling="no" width="0" height="0" src="https://zingmp3.vn/embed/song/Z6Z00Z7U?start=true" frameborder="0" allowfullscreen="true"></iframe>
+""", unsafe_allow_html=True)
+
+# Thêm CSS tùy chỉnh cho giao diện Noel: background, màu sắc, v.v.
+st.markdown("""
+    <style>
+    /* Background Noel */
+    .stApp {
+        background-image: url("https://images.pexels.com/photos/1303098/pexels-photo-1303098.jpeg?cs=srgb&dl=pexels-george-dolgikh-551816-1303098.jpg&fm=jpg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    
+    /* Màu sắc Noel cho tiêu đề và nút */
+    h1 {
+        color: #d00000;  /* Đỏ Noel */
+        text-shadow: 2px 2px 4px #ffffff;
+    }
+    
+    h3 {
+        color: #006400;  /* Xanh cây thông */
+    }
+    
+    .stButton > button {
+        background-color: #228B22;  /* Xanh lá */
+        color: white;
+        border: 2px solid #d00000;
+    }
+    
+    .stButton > button:hover {
+        background-color: #d00000;
+        color: white;
+    }
+    
+    /* Thêm border Noel cho các phần */
+    .stExpander, .stTextArea, .stNumberInput {
+        border: 2px dashed #ffffff;
+        border-radius: 10px;
+        padding: 10px;
+        background-color: rgba(255, 255, 255, 0.8);  /* Nền trắng mờ để dễ đọc */
+    }
+    
+    /* Hiệu ứng lấp lánh cho tiêu đề (optional, nếu browser hỗ trợ) */
+    @keyframes sparkle {
+        0% { text-shadow: 0 0 5px #fff; }
+        50% { text-shadow: 0 0 20px #fff; }
+        100% { text-shadow: 0 0 5px #fff; }
+    }
+    h1 {
+        animation: sparkle 2s infinite;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Hiển thị ảnh bìa trên đầu tiêu đề nếu file tồn tại
 cover_path = "qrcode/cover-photo.jpg"
 if os.path.exists(cover_path):
@@ -93,13 +153,13 @@ if os.path.exists(cover_path):
 else:
     st.warning(f"Không tìm thấy ảnh bìa tại '{cover_path}'. Vui lòng kiểm tra đường dẫn và đặt file đúng vị trí.")
 
-st.title("📦 PDF Barcode Batch Reader — Extract & Trim")
-st.markdown("### Hướng dẫn sử dụng")
+st.title("🎄📦 PDF Barcode Batch Reader — Extract & Trim ❄️")
+st.markdown("### 🎅 Hướng dẫn sử dụng (Phiên bản Noel) 🎁")
 st.markdown("""
-- Dán danh sách **URL PDF hoặc link Google Drive** (mỗi link 1 dòng) vào ô bên dưới.
-- Chọn số lượng worker (threads) để xử lý song song (mặc định: 6).
-- Nhấn **🚀 Start processing** để bắt đầu.
-- Kết quả sẽ hiển thị dưới dạng bảng, và bạn có thể tải về CSV hoặc copy danh sách trimmed.
+- Dán danh sách **URL PDF hoặc link Google Drive** (mỗi link 1 dòng) vào ô bên dưới. 🎄
+- Chọn số lượng worker (threads) để xử lý song song (mặc định: 6). ❄️
+- Nhấn **🚀 Start processing** để bắt đầu. 🌟
+- Kết quả sẽ hiển thị dưới dạng bảng, và bạn có thể tải về CSV hoặc copy danh sách trimmed. 🎅
 """)
 
 # Khởi tạo session state
@@ -114,33 +174,33 @@ if "results" not in st.session_state:
 
 # --- Sidebar cho cấu hình ---
 with st.sidebar:
-    st.header("⚙️ Cấu hình")
+    st.header("⚙️ Cấu hình 🎄")
     max_workers = st.number_input(
         "Max workers (threads)",
         min_value=1,
         max_value=32,
         value=DEFAULT_MAX_WORKERS,
         step=1,
-        help="Số lượng luồng song song để xử lý nhanh hơn (tùy thuộc vào tài nguyên máy)."
+        help="Số lượng luồng song song để xử lý nhanh hơn (tùy thuộc vào tài nguyên máy). ❄️"
     )
     st.markdown("---")
-    st.header("ℹ️ Thông tin")
-    st.markdown("Công cụ này hỗ trợ trích xuất mã vạch từ PDF vận đơn (ví dụ: mã tracking).")
-    st.markdown("Nếu hữu ích, hãy ủng hộ developer một chiếc donut! 🍩")
+    st.header("ℹ️ Thông tin 🎅")
+    st.markdown("Công cụ này hỗ trợ trích xuất mã vạch từ PDF vận đơn (ví dụ: mã tracking). 🌟")
+    st.markdown("Nếu hữu ích, hãy ủng hộ developer một chiếc donut! 🍩🎁")
 
 # --- Giao diện chính ---
 urls_text = st.text_area(
-    "Dán URLs PDF hoặc Google Drive (mỗi link 1 dòng)",
+    "Dán URLs PDF hoặc Google Drive (mỗi link 1 dòng) 🎄",
     height=220,
     value="\n".join(st.session_state.get("urls", [])),
-    help="Ví dụ: https://drive.google.com/file/d/ABC123/view"
+    help="Ví dụ: https://drive.google.com/file/d/ABC123/view ❄️"
 )
 
 col_btn1, col_btn2 = st.columns([1, 1])
 with col_btn1:
-    start_btn = st.button("🚀 Start processing", disabled=st.session_state["running"], type="primary")
+    start_btn = st.button("🚀 Start processing 🎅", disabled=st.session_state["running"], type="primary")
 with col_btn2:
-    refresh_btn = st.button("🔄 Reset session")
+    refresh_btn = st.button("🔄 Reset session ❄️")
 
 progress_bar = st.progress(0)
 status_text = st.empty()
@@ -155,7 +215,7 @@ if refresh_btn:
     st.session_state["show_donut"] = False
     st.session_state["process_triggered"] = False
     progress_bar.progress(0)
-    status_text.text("Đã reset. Sẵn sàng sử dụng lại.")
+    status_text.text("Đã reset. Sẵn sàng sử dụng lại. 🎄")
     st.rerun()
 
 # --- Start processing ---
@@ -166,17 +226,17 @@ if start_btn:
 
 # --- Hiển thị popup donut (sử dụng expander để giả lập modal) ---
 if st.session_state.get("show_donut", False):
-    with st.expander("🍩 Ủng hộ tôi - Donut Time! (Mỗi lần sử dụng, hãy cân nhắc ủng hộ 💗)", expanded=True):
+    with st.expander("🍩 Ủng hộ tôi - Donut Time! (Mỗi lần sử dụng, hãy cân nhắc ủng hộ 💗) 🎅", expanded=True):
         st.markdown("""
-        Nếu công cụ này giúp ích cho bạn, hãy ủng hộ tôi một chiếc donut ☕🍩 để duy trì và phát triển!
+        Nếu công cụ này giúp ích cho bạn, hãy ủng hộ tôi một chiếc donut ☕🍩 để duy trì và phát triển! 🌟
         """)
         # Giả sử QR code được lưu tại 'qrcode/qrcode.jpg' - bạn có thể thay bằng URL hoặc upload
         qr_path = "qrcode/qrcode.jpg"
         if os.path.exists(qr_path):
-            st.image(qr_path, caption="Scan QR để ủng hộ", width=250)
+            st.image(qr_path, caption="Scan QR để ủng hộ 🎁", width=250)
         else:
-            st.warning(f"Không tìm thấy QR code tại '{qr_path}'. Vui lòng kiểm tra đường dẫn.")
-        if st.button("Đóng và tiếp tục xử lý"):
+            st.warning(f"Không tìm thấy QR code tại '{qr_path}'. Vui lòng kiểm tra đường dẫn. ❄️")
+        if st.button("Đóng và tiếp tục xử lý 🎄"):
             st.session_state["show_donut"] = False
             st.rerun()
 
@@ -186,7 +246,7 @@ if st.session_state.get("process_triggered", False) and not st.session_state["sh
     st.session_state["urls"] = lines
     total = len(lines)
     if total == 0:
-        status_text.text("Vui lòng dán URLs trước khi bắt đầu.")
+        status_text.text("Vui lòng dán URLs trước khi bắt đầu. 🎅")
         st.session_state["process_triggered"] = False  # Reset trigger
     else:
         st.session_state["total"] = total
@@ -195,7 +255,7 @@ if st.session_state.get("process_triggered", False) and not st.session_state["sh
         st.session_state["running"] = True
 
         poppler_path = get_poppler_path()
-        status_text.text(f"Đang xử lý {total} URLs...")
+        status_text.text(f"Đang xử lý {total} URLs... ❄️")
 
         futures = {}
         max_workers_to_use = min(max_workers, DEFAULT_MAX_WORKERS, total) if total > 0 else 1
@@ -213,15 +273,15 @@ if st.session_state.get("process_triggered", False) and not st.session_state["sh
                 st.session_state["processed"] += 1
                 progress_val = st.session_state["processed"] / st.session_state["total"]
                 progress_bar.progress(progress_val)
-                status_text.text(f"Đang xử lý {st.session_state['processed']}/{st.session_state['total']}")
+                status_text.text(f"Đang xử lý {st.session_state['processed']}/{st.session_state['total']} 🎄")
 
         st.session_state["running"] = False
         st.session_state["process_triggered"] = False  # Reset trigger sau khi hoàn thành
-        status_text.text("✅ Hoàn thành xử lý!")
+        status_text.text("✅ Hoàn thành xử lý! 🌟")
 
 # --- Hiển thị kết quả ---
 if st.session_state.get("results"):
-    st.markdown("### 📋 Kết quả xử lý")
+    st.markdown("### 📋 Kết quả xử lý 🎅")
     display_rows = [r if r else {"index": idx, "url": "", "raw": "", "trimmed": "N/A", "error": "Đang chờ"} for idx, r in enumerate(st.session_state["results"])]
     st.dataframe(display_rows, use_container_width=True)
 
@@ -240,6 +300,6 @@ if st.session_state.get("results"):
 
     col_dl1, col_dl2 = st.columns(2)
     with col_dl1:
-        st.download_button("💾 Tải CSV kết quả", data=csv_data, file_name="results.csv", mime="text/csv")
+        st.download_button("💾 Tải CSV kết quả 🎁", data=csv_data, file_name="results.csv", mime="text/csv")
     with col_dl2:
-        st.text_area("Danh sách trimmed (copy-paste)", value=trimmed_text, height=200)
+        st.text_area("Danh sách trimmed (copy-paste) ❄️", value=trimmed_text, height=200)
