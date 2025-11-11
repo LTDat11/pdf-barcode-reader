@@ -194,14 +194,61 @@ if start_btn:
 
 # --- Hiển thị popup QR giả lập ---
 if st.session_state.get("show_qr", False):
-    with st.container():
-        st.markdown("### 🍩 Ủng hộ tôi - Donut Time!")
-        st.write("Nếu công cụ này giúp ích cho bạn My và Hân, có thể ủng hộ tôi một chiếc donut ☕🍩")
-        st.image("qrcode/qrcode.jpg", caption="Scan để ủng hộ 💗", width=220)
-        st.write("Cảm ơn bạn rất nhiều ❤️")
-        if st.button("Đóng popup"):
-            st.session_state["show_qr"] = False
-            st.rerun()
+    popup_html = """
+    <style>
+        .popup-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .popup-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+            position: relative;
+        }
+        .popup-box img {
+            max-width: 220px;
+            border-radius: 8px;
+        }
+        .popup-close {
+            background-color: #ff4b4b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .popup-close:hover {
+            background-color: #e63b3b;
+        }
+    </style>
+
+    <div class="popup-overlay">
+        <div class="popup-box">
+            <h3>🍩 Ủng hộ tôi - Donut Time!</h3>
+            <p>Nếu công cụ này giúp ích cho bạn,<br>hãy ủng hộ tôi một chiếc donut ☕🍩</p>
+            <img src="qrcode/qrcode.jpg" alt="QR Donate">
+            <p>Scan để ủng hộ 💗</p>
+            <form action="" method="get">
+                <button class="popup-close" type="submit">Đóng</button>
+            </form>
+        </div>
+    </div>
+    """
+    st.markdown(popup_html, unsafe_allow_html=True)
+    st.session_state["show_qr"] = False
 
 # --- Hiển thị kết quả ---
 if st.session_state.get("results"):
