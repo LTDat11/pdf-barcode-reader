@@ -127,14 +127,6 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# Thêm nhạc nền với audio tag và autoplay loop
-st.markdown("""
-    <audio autoplay loop>
-        <source src="https://incompetech.com/music/royalty-free/mp3-royaltyfree/Jingle%20Bells%203.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
-""", unsafe_allow_html=True)
-
 # Thêm CSS tùy chỉnh cho giao diện Noel: background, màu sắc, v.v.
 st.markdown("""
     <style>
@@ -145,36 +137,36 @@ st.markdown("""
         background-position: center;
         background-repeat: no-repeat;
     }
-    
+   
     /* Màu sắc Noel cho tiêu đề và nút */
     h1 {
-        color: #d00000;  /* Đỏ Noel */
+        color: #d00000; /* Đỏ Noel */
         text-shadow: 2px 2px 4px #ffffff;
     }
-    
+   
     h3 {
-        color: #006400;  /* Xanh cây thông */
+        color: #006400; /* Xanh cây thông */
     }
-    
+   
     .stButton > button {
-        background-color: #228B22;  /* Xanh lá */
+        background-color: #228B22; /* Xanh lá */
         color: white;
         border: 2px solid #d00000;
     }
-    
+   
     .stButton > button:hover {
         background-color: #d00000;
         color: white;
     }
-    
+   
     /* Thêm border Noel cho các phần */
     .stExpander, .stTextArea, .stNumberInput {
         border: 2px dashed #ffffff;
         border-radius: 10px;
         padding: 10px;
-        background-color: rgba(255, 255, 255, 0.8);  /* Nền trắng mờ để dễ đọc */
+        background-color: rgba(255, 255, 255, 0.8); /* Nền trắng mờ để dễ đọc */
     }
-    
+   
     /* Hiệu ứng lấp lánh cho tiêu đề (optional, nếu browser hỗ trợ) */
     @keyframes sparkle {
         0% { text-shadow: 0 0 5px #fff; }
