@@ -84,6 +84,7 @@ def process_single(idx: int, url: str, poppler_path: str | None) -> Dict:
     return result
 
 # ---------- Streamlit UI ----------
+st.image("qrcode/cover-photo.jpg", use_column_width=True)
 st.set_page_config(page_title="PDF Barcode Batch Reader", layout="wide", initial_sidebar_state="expanded")
 st.title("📦 PDF Barcode Batch Reader — Extract & Trim")
 st.markdown("### Hướng dẫn sử dụng")
